@@ -55,7 +55,7 @@
 #include <QRegExp>
 
 extern "C" {
-extern const char* System_openModelicaPlatform();
+#include "OMC/OMCRuntimeAPI.h"
 }
 
 SplashScreen *SplashScreen::mpInstance = 0;

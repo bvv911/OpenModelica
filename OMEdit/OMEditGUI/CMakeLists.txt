@@ -13,6 +13,12 @@ endif()
 
 add_executable(OMEdit WIN32 main.cpp rc_omedit.rc ${app_icon_macos})
 target_link_libraries(OMEdit PRIVATE OMEditLib)
+# Ensure the OMC DLL import library is on the final link line (MSVC static libs do not always propagate it).
+target_link_libraries(OMEdit PRIVATE OpenModelicaCompiler)
+if(MSVC)
+  # Match legacy qmake OMEditGUI.win.config.pri: import MetaModelica/runtime from the OMC DLL.
+  target_compile_definitions(OMEdit PRIVATE IMPORT_INTO=1)
+endif()
 
 if(APPLE)
   set_target_properties(OMEdit PROPERTIES MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist)

@@ -63,7 +63,7 @@
 #include <QDesktopServices>
 
 extern "C" {
-extern const char* System_openModelicaPlatform();
+#include "OMC/OMCRuntimeAPI.h"
 }
 
 /*!

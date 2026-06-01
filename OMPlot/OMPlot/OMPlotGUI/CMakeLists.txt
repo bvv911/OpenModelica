@@ -49,7 +49,9 @@ if (OM_QT_MAJOR_VERSION VERSION_GREATER_EQUAL 6)
 endif ()
 
 target_link_libraries(OMPlotLib PUBLIC omqwt)
-target_link_libraries(OMPlotLib PUBLIC omc::simrt::runtime)
+# Do not propagate the static MSVC runtime to OMEdit (LNK2005 on mmc_init, etc.).
+target_link_libraries(OMPlotLib PRIVATE omc::simrt::runtime)
+target_link_libraries(OMPlotLib PUBLIC omc::simrt::runtime::headers)
 
 
 
