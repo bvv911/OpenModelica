@@ -364,6 +364,10 @@ endif ()
 
 target_link_libraries(OMEditLib PUBLIC omc::3rd::opcua)
 target_link_libraries(OMEditLib PUBLIC omc::3rd::simdjson)
+# Used directly by Animation (fmilib.h) and OMS (zmq.h); were previously transitive via
+# PUBLIC links on OpenModelicaCompiler / omcruntime.
+target_link_libraries(OMEditLib PUBLIC omc::3rd::fmilib)
+target_link_libraries(OMEditLib PUBLIC omc::3rd::libzmq)
 target_link_libraries(OMEditLib PUBLIC OMPlotLib)
 target_link_libraries(OMEditLib PUBLIC OpenModelicaCompiler)
 target_link_libraries(OMEditLib PUBLIC ${OPENSCENEGRAPH_LIBRARIES})
