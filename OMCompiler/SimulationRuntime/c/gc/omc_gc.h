@@ -146,7 +146,12 @@ typedef struct threadData_s {
 typedef threadData_t OpenModelica_threadData_ThreadData;
 
 #include "../meta/meta_modelica_segv.h"
+#if defined(__MINGW32__) || defined(_MSC_VER)
+#include "../openmodelica.h"
+DLLDirection void mmc_do_out_of_memory(void);
+#else
 void mmc_do_out_of_memory(void) __attribute__ ((noreturn));
+#endif
 #define GC_RETURN_REPORT_ALLOC_FAILED(X) { void *res = (X); \
   if (0==res) { \
     mmc_do_out_of_memory(); \

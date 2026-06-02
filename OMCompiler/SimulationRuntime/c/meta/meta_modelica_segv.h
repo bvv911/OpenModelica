@@ -36,6 +36,10 @@ extern "C" {
 
 #include <setjmp.h>
 
+#if defined(__MINGW32__) || defined(_MSC_VER)
+#include "../openmodelica.h"
+#endif
+
 #define MMC_TRY_STACK() { jmp_buf *oldMMCJumper = threadData->mmc_jumper; { MMC_TRY_INTERNAL(mmc_stack_overflow_jumper) threadData->mmc_stack_overflow_jumper = &new_mmc_jumper;
 #define MMC_ELSE_STACK() } else { threadData->mmc_jumper = oldMMCJumper; threadData->mmc_stack_overflow_jumper = old_jumper;
 #define MMC_CATCH_STACK() MMC_CATCH_INTERNAL(mmc_stack_overflow_jumper) } threadData->mmc_jumper = oldMMCJumper; }
@@ -44,6 +48,8 @@ extern "C" {
 static inline void printStacktraceMessages(void)
 {
 }
+#elif defined(__MINGW32__) || defined(_MSC_VER)
+DLLDirection void printStacktraceMessages(void);
 #else
 void printStacktraceMessages(void);
 #endif
@@ -53,7 +59,10 @@ void init_metamodelica_segv_handler(void);
 #if defined(OMC_MINIMAL_RUNTIME)
 static inline void mmc_init_stackoverflow(threadData_t *threadData)
 {
+  (void)threadData;
 }
+#elif defined(__MINGW32__) || defined(_MSC_VER)
+DLLDirection void mmc_init_stackoverflow(threadData_t *threadData);
 #else
 void mmc_init_stackoverflow(threadData_t *threadData);
 #endif
