@@ -26,8 +26,19 @@
  */
 
 #include "../meta/meta_modelica_data.h"
+
+#if defined(__MINGW32__) || defined(_MSC_VER)
+#include "../openmodelica.h"
+#if defined(IMPORT_INTO)
+#error "modelica_string_lit.c must be built without IMPORT_INTO (runtime/DLL side only)"
+#endif
+#define MMC_STRING_LIT_DEF DLLDirection
+#else
+#define MMC_STRING_LIT_DEF
+#endif
+
 static const MMC_DEFSTRINGLIT(OMC_STRINGLIT_0,0,"");
-void* mmc_emptystring = MMC_REFSTRINGLIT(OMC_STRINGLIT_0);
+MMC_STRING_LIT_DEF void* mmc_emptystring = MMC_REFSTRINGLIT(OMC_STRINGLIT_0);
 static MMC_DEFSTRINGLIT(OMC_STRINGLIT_1_01,1,"\x01");
 static MMC_DEFSTRINGLIT(OMC_STRINGLIT_1_02,1,"\x02");
 static MMC_DEFSTRINGLIT(OMC_STRINGLIT_1_03,1,"\x03");
@@ -283,7 +294,7 @@ static MMC_DEFSTRINGLIT(OMC_STRINGLIT_1_FC,1,"\xFC");
 static MMC_DEFSTRINGLIT(OMC_STRINGLIT_1_FD,1,"\xFD");
 static MMC_DEFSTRINGLIT(OMC_STRINGLIT_1_FE,1,"\xFE");
 static MMC_DEFSTRINGLIT(OMC_STRINGLIT_1_FF,1,"\xFF");
-void* mmc_strings_len1[256] = {
+MMC_STRING_LIT_DEF void* mmc_strings_len1[256] = {
 NULL,
 MMC_REFSTRINGLIT(OMC_STRINGLIT_1_01),
 MMC_REFSTRINGLIT(OMC_STRINGLIT_1_02),
@@ -543,11 +554,11 @@ MMC_REFSTRINGLIT(OMC_STRINGLIT_1_FF),
 };
 
 static MMC_DEFSTRINGLIT(OMC_STRINGLIT_UNINITIALIZED,23,"$#*OMC_UNINITIALIZED*#$");
-void* mmc_string_uninitialized = MMC_REFSTRINGLIT(OMC_STRINGLIT_UNINITIALIZED);
+MMC_STRING_LIT_DEF void* mmc_string_uninitialized = MMC_REFSTRINGLIT(OMC_STRINGLIT_UNINITIALIZED);
 
 static const MMC_DEFSTRINGLIT(OMC_STRINGLIT_BOOLSTRING_0,5,"false");
 static const MMC_DEFSTRINGLIT(OMC_STRINGLIT_BOOLSTRING_1,4,"true");
-void* mmc_strings_boolString[2] = {
+MMC_STRING_LIT_DEF void* mmc_strings_boolString[2] = {
 MMC_REFSTRINGLIT(OMC_STRINGLIT_BOOLSTRING_0),
 MMC_REFSTRINGLIT(OMC_STRINGLIT_BOOLSTRING_1)
 };
