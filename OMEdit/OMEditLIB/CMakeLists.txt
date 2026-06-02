@@ -367,6 +367,8 @@ endif ()
 
 target_link_libraries(OMEditLib PUBLIC omc::3rd::opcua)
 target_link_libraries(OMEditLib PUBLIC omc::3rd::simdjson)
+# StringHandler.cpp: om_format.h, ryu_hr_tdzp (was transitive via runtime / -lryu in qmake).
+target_link_libraries(OMEditLib PUBLIC omc::3rd::ryu)
 # Used directly by Animation (fmilib.h) and OMS (zmq.h); were previously transitive via
 # PUBLIC links on OpenModelicaCompiler / omcruntime.
 target_link_libraries(OMEditLib PUBLIC omc::3rd::fmilib)
