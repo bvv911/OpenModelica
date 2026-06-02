@@ -27,8 +27,18 @@
 
 #ifndef __META_MODELICA_STRING_LIT__H
 #define __META_MODELICA_STRING_LIT__H
+
+#if defined(IMPORT_INTO)
+#include "../openmodelica.h"
+DLLDirection extern void *mmc_emptystring;
+DLLDirection extern void *mmc_strings_len1[256];
+DLLDirection extern void *mmc_string_uninitialized;
+DLLDirection extern void *mmc_strings_boolString[2];
+#else
 extern void *mmc_emptystring;
 extern void *mmc_strings_len1[256];
 extern void *mmc_string_uninitialized;
 extern void *mmc_strings_boolString[2];
+#endif
+
 #endif

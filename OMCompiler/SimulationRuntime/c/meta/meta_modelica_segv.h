@@ -44,6 +44,9 @@ extern "C" {
 static inline void printStacktraceMessages(void)
 {
 }
+#elif defined(IMPORT_INTO)
+#include "../openmodelica.h"
+DLLDirection void printStacktraceMessages(void);
 #else
 void printStacktraceMessages(void);
 #endif
@@ -53,7 +56,10 @@ void init_metamodelica_segv_handler(void);
 #if defined(OMC_MINIMAL_RUNTIME)
 static inline void mmc_init_stackoverflow(threadData_t *threadData)
 {
+  (void)threadData;
 }
+#elif defined(IMPORT_INTO)
+DLLDirection void mmc_init_stackoverflow(threadData_t *threadData);
 #else
 void mmc_init_stackoverflow(threadData_t *threadData);
 #endif

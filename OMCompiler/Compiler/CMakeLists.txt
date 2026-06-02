@@ -264,11 +264,18 @@ endif()
 
 
 
-target_link_libraries(OpenModelicaCompiler PUBLIC omc::parser)
-target_link_libraries(OpenModelicaCompiler PUBLIC omc::compiler::backendruntime)
-target_link_libraries(OpenModelicaCompiler PUBLIC omc::compiler::runtime)
-target_link_libraries(OpenModelicaCompiler PUBLIC omc::compiler::frontendcpp)
-target_link_libraries(OpenModelicaCompiler PUBLIC omc::simrt::runtime)
+# Implementation libraries are linked privately so a static OpenModelicaRuntimeC (MSVC)
+# is not propagated to clients (e.g. OMEdit). Otherwise mmc_init and other runtime
+# symbols are linked into both libOpenModelicaCompiler and the client (LNK2005).
+target_link_libraries(OpenModelicaCompiler PRIVATE omc::parser)
+target_link_libraries(OpenModelicaCompiler PRIVATE omc::compiler::backendruntime)
+target_link_libraries(OpenModelicaCompiler PRIVATE omc::compiler::runtime)
+target_link_libraries(OpenModelicaCompiler PRIVATE omc::compiler::frontendcpp)
+
+# Clients need MetaModelica/util include paths (e.g. OMEdit) but must not link the
+# static runtime library again. omc::simrt::runtime is already pulled in above via
+# parser/runtime/backend/frontend.
+target_link_libraries(OpenModelicaCompiler INTERFACE omc::simrt::runtime::headers)
 
 # On Windows we need explicitly tell the dll to export all symbols. It is not so good
 # that we have to export all symbols. However, OMEdit uses some of the functions in the

@@ -325,6 +325,9 @@ target_include_directories(OMEditLib PUBLIC ${OPENSCENEGRAPH_INCLUDE_DIRS})
 if(WIN32)
   target_compile_definitions(OMEditLib PRIVATE UNICODE)
 endif()
+if(MSVC)
+  target_compile_definitions(OMEditLib PRIVATE IMPORT_INTO=1)
+endif()
 
 if(OM_ENABLE_ENCRYPTION)
   target_compile_definitions(OMEditLib PRIVATE OM_ENABLE_ENCRYPTION)
@@ -364,6 +367,12 @@ endif ()
 
 target_link_libraries(OMEditLib PUBLIC omc::3rd::opcua)
 target_link_libraries(OMEditLib PUBLIC omc::3rd::simdjson)
+# StringHandler.cpp: om_format.h, ryu_hr_tdzp (was transitive via runtime / -lryu in qmake).
+target_link_libraries(OMEditLib PUBLIC omc::3rd::ryu)
+# Used directly by Animation (fmilib.h) and OMS (zmq.h); were previously transitive via
+# PUBLIC links on OpenModelicaCompiler / omcruntime.
+target_link_libraries(OMEditLib PUBLIC omc::3rd::fmilib)
+target_link_libraries(OMEditLib PUBLIC omc::3rd::libzmq)
 target_link_libraries(OMEditLib PUBLIC OMPlotLib)
 target_link_libraries(OMEditLib PUBLIC OpenModelicaCompiler)
 target_link_libraries(OMEditLib PUBLIC ${OPENSCENEGRAPH_LIBRARIES})

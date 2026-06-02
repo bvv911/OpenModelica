@@ -98,6 +98,13 @@ void mmc_set_current_pos(const char *pos)
   curPos = pos;
 }
 #endif
+#if defined(__MINGW32__) || defined(_MSC_VER)
+#include "../openmodelica.h"
+#if defined(IMPORT_INTO)
+#error "omc_gc.c must be built without IMPORT_INTO (runtime/DLL side only)"
+#endif
+DLLDirection
+#endif
 void mmc_do_out_of_memory(void)
 {
   threadData_t *threadData = (threadData_t*)pthread_getspecific(mmc_thread_data_key);

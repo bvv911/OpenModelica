@@ -32,8 +32,13 @@
 
 #if defined(OM_HAVE_PTHREADS)
 #include <pthread.h>
+#if defined(IMPORT_INTO)
 DLLDirection extern pthread_key_t mmc_thread_data_key;
 DLLDirection extern pthread_once_t mmc_init_once;
+#else
+extern pthread_key_t mmc_thread_data_key;
+extern pthread_once_t mmc_init_once;
+#endif
 #else
 static const int mmc_thread_data_key = 1;
 #if defined(OMC_MODEL_PREFIX)
@@ -41,7 +46,11 @@ static const int mmc_thread_data_key = 1;
 #else
 #define OMC_MAIN_THREADDATA_NAME globalThreadData_UnknownModel
 #endif
+#if defined(IMPORT_INTO)
 DLLDirection extern threadData_t *OMC_MAIN_THREADDATA_NAME;
+#else
+extern threadData_t *OMC_MAIN_THREADDATA_NAME;
+#endif
 static inline void* pthread_getspecific(int key)
 {
   assert(key==mmc_thread_data_key);
@@ -49,7 +58,12 @@ static inline void* pthread_getspecific(int key)
 }
 #endif
 
+#if defined(IMPORT_INTO)
 DLLDirection extern void mmc_init(void);
 DLLDirection extern void mmc_init_nogc(void);
+#else
+extern void mmc_init(void);
+extern void mmc_init_nogc(void);
+#endif
 
 #endif
