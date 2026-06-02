@@ -36,6 +36,10 @@
 #include <pthread_np.h>
 #endif
 
+#include "../openmodelica.h"
+#if defined(IMPORT_INTO)
+#error "meta_modelica_segv.c must be built without IMPORT_INTO (runtime/DLL side only)"
+#endif
 #include "meta_modelica.h"
 
 void* mmc_getStacktraceMessages_threadData(threadData_t *threadData)
@@ -78,6 +82,9 @@ static int trace_size;
 static int trace_size_skip=0; /* First index we should use; that is skip handler, etc */
 static struct sigaction default_segv_action;
 
+#if defined(__MINGW32__) || defined(_MSC_VER)
+DLLDirection
+#endif
 void printStacktraceMessages(void) {
   int i,j=-1,k;
   char **messages = backtrace_symbols(trace, trace_size);
@@ -258,6 +265,9 @@ void mmc_setStacktraceMessages_threadData(threadData_t *threadData, int numSkip,
   threadData->localRoots[LOCAL_ROOT_STACK_OVERFLOW] = mmc_mk_cons(mmc_mk_scon("[... unsupported platform for backtraces]"), mmc_mk_nil());
 }
 
+#if defined(__MINGW32__) || defined(_MSC_VER)
+DLLDirection
+#endif
 void printStacktraceMessages()
 {
 }
@@ -266,6 +276,9 @@ void init_metamodelica_segv_handler(void)
 {
 }
 
+#if defined(__MINGW32__) || defined(_MSC_VER)
+DLLDirection
+#endif
 void mmc_init_stackoverflow(threadData_t *threadData)
 {
   threadData->stackBottom = (void *)0x1; /* Dummy until Windows detects the stack bottom */

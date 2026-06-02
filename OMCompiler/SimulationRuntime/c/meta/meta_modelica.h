@@ -214,6 +214,9 @@ static void* mmc_mk_modelica_array(base_array_t arr)
   /* Note: The data is hopefully not stack-allocated and can be passed this way */
   return cpy;
 }
+#elif defined(IMPORT_INTO)
+DLLDirection void* mmc_mk_rcon(double d);
+DLLDirection void* mmc_mk_modelica_array(base_array_t);
 #else
 void* mmc_mk_rcon(double d);
 void* mmc_mk_modelica_array(base_array_t);

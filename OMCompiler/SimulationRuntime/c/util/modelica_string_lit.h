@@ -28,11 +28,8 @@
 #ifndef __META_MODELICA_STRING_LIT__H
 #define __META_MODELICA_STRING_LIT__H
 
-#if defined(__MINGW32__) || defined(_MSC_VER)
+#if defined(IMPORT_INTO)
 #include "../openmodelica.h"
-#endif
-
-#if defined(__MINGW32__) || defined(_MSC_VER)
 DLLDirection extern void *mmc_emptystring;
 DLLDirection extern void *mmc_strings_len1[256];
 DLLDirection extern void *mmc_string_uninitialized;

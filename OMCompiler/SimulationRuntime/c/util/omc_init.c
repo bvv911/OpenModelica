@@ -29,14 +29,24 @@
 #include "omc_init.h"
 #include "../meta/meta_modelica_segv.h"
 
-#if defined(OM_HAVE_PTHREADS)
-pthread_key_t mmc_thread_data_key = 0;
-pthread_once_t mmc_init_once = PTHREAD_ONCE_INIT;
+#if defined(__MINGW32__) || defined(_MSC_VER)
+#include "../openmodelica.h"
+#if defined(IMPORT_INTO)
+#error "omc_init.c must be built without IMPORT_INTO (runtime/DLL side only)"
+#endif
+#define OMC_INIT_DEF DLLDirection
 #else
-threadData_t *OMC_MAIN_THREADDATA_NAME = 0;
+#define OMC_INIT_DEF
 #endif
 
-void mmc_init_nogc(void)
+#if defined(OM_HAVE_PTHREADS)
+OMC_INIT_DEF pthread_key_t mmc_thread_data_key = 0;
+OMC_INIT_DEF pthread_once_t mmc_init_once = PTHREAD_ONCE_INIT;
+#else
+OMC_INIT_DEF threadData_t *OMC_MAIN_THREADDATA_NAME = 0;
+#endif
+
+OMC_INIT_DEF void mmc_init_nogc(void)
 {
 #if defined(OM_HAVE_PTHREADS)
   pthread_key_create(&mmc_thread_data_key,NULL);
@@ -49,14 +59,14 @@ void mmc_init_nogc(void)
 }
 
 #if defined(OMC_MINIMAL_RUNTIME)
-void mmc_init(void)
+OMC_INIT_DEF void mmc_init(void)
 {
   fprintf(stderr, "Error: called mmc_init (requesting garbage collection) when OMC was compiled with a minimal runtime system.");
   exit(1);
 }
 #else
 #include "../gc/omc_gc.h"
-void mmc_init(void)
+OMC_INIT_DEF void mmc_init(void)
 {
   mmc_init_nogc();
   mmc_GC_init();

@@ -26,6 +26,9 @@
  */
 
 #include "../openmodelica.h"
+#if defined(IMPORT_INTO)
+#error "meta_modelica.c must be built without IMPORT_INTO (runtime/DLL side only)"
+#endif
 #include "meta_modelica.h"
 #include "meta_modelica_builtin.h"
 #include "../util/base_array.h"
@@ -47,6 +50,10 @@ void* mmc_mk_rcon(double d)
     return p;
 }
 */
+#if !defined(OMC_MINIMAL_RUNTIME)
+#if defined(__MINGW32__) || defined(_MSC_VER)
+DLLDirection
+#endif
 void* mmc_mk_rcon(double d)
 {
     struct mmc_real *p = (struct mmc_real*)mmc_alloc_words_atomic(MMC_SIZE_DBL/MMC_SIZE_INT + 1);
@@ -57,6 +64,7 @@ void* mmc_mk_rcon(double d)
 #endif
     return MMC_TAGPTR(p);
 }
+#endif /* !OMC_MINIMAL_RUNTIME */
 
 void* mmc_mk_modelica_array(base_array_t arr)
 {
