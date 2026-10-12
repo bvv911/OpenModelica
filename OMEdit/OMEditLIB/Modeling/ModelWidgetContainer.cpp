@@ -8056,6 +8056,11 @@ void ModelWidgetContainer::setSideToolBarPosition(SideToolBar::Position position
 
 void ModelWidgetContainer::addModelWidget(ModelWidget *pModelWidget, bool checkPreferedView)
 {
+  // Do not paint the widget between its first show and the initialization of
+  // the active view. Otherwise a checked tool button can briefly be rendered
+  // using the inactive MDI window state.
+  pModelWidget->setUpdatesEnabled(false);
+
   bool hasModelWidget = false;
   QList<QMdiSubWindow*> subWindowsList = subWindowList(QMdiArea::ActivationHistoryOrder);
   for (int i = subWindowsList.size() - 1 ; i >= 0 ; i--) {
@@ -8099,6 +8104,7 @@ void ModelWidgetContainer::addModelWidget(ModelWidget *pModelWidget, bool checkP
 
   if (!checkPreferedView || !pModelWidget->getLibraryTreeItem()->isModelica()) {
     pModelWidget->updateViewButtonsBasedOnAccess();
+    pModelWidget->setUpdatesEnabled(true);
     return;
   }
   // get the preferred view to display
@@ -8122,6 +8128,7 @@ void ModelWidgetContainer::addModelWidget(ModelWidget *pModelWidget, bool checkP
     }
   }
   pModelWidget->updateViewButtonsBasedOnAccess();
+  pModelWidget->setUpdatesEnabled(true);
 }
 
 /*!
