@@ -136,7 +136,7 @@ bool SideToolBar::eventFilter(QObject *pWatched, QEvent *pEvent)
 
 void SideToolBar::childEvent(QChildEvent *pEvent)
 {
-  if (pEvent->added()) {
+  if (pEvent->added() || pEvent->polished()) {
     QWidget *pChildWidget = qobject_cast<QWidget*>(pEvent->child());
     if (pChildWidget && !qobject_cast<QMenu*>(pChildWidget)) {
       pChildWidget->installEventFilter(this);
