@@ -65,6 +65,7 @@
 #include <QtWebKit>
 #endif // #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 #include <QSplitter>
+#include <QToolBar>
 #include <QUndoStack>
 #include <QUndoView>
 
@@ -526,6 +527,34 @@ private:
 class ModelWidgetContainer;
 class ModelicaHighlighter;
 class Label;
+
+class SideToolBar : public QToolBar
+{
+  Q_OBJECT
+public:
+  enum class Position {top, bottom, left, right};
+  Q_ENUM(Position)
+
+  explicit SideToolBar(QWidget *pParent = nullptr);
+  Position getPosition() const {return mPosition;}
+  void setPosition(Position position);
+signals:
+  void positionChanged(SideToolBar::Position position);
+protected:
+  bool eventFilter(QObject *pWatched, QEvent *pEvent) override;
+  void childEvent(QChildEvent *pEvent) override;
+  void contextMenuEvent(QContextMenuEvent *pEvent) override;
+private:
+  void showContextMenu(const QPoint &globalPosition);
+
+  QMenu *mpMenu;
+  QAction *mpMoveToTopAction;
+  QAction *mpMoveToBottomAction;
+  QAction *mpMoveToLeftAction;
+  QAction *mpMoveToRightAction;
+  Position mPosition;
+};
+
 class ModelWidget : public QWidget
 {
   Q_OBJECT
@@ -603,6 +632,7 @@ public:
   void showElement(ModelInstance::Model *pModelInstance, bool addToList);
   void selectDeselectElement(const QString &name, bool selected);
   void navigateToClass(const QString &className);
+  void updateSideToolBarPosition(SideToolBar::Position position);
 
   QPair<QString, bool> getParameterDisplayString(QString parameterName);
   QPair<QString, bool> getParameterModifierValue(const QString &parameterName, const QString &modifier);
@@ -633,9 +663,13 @@ private:
   QUndoView *mpUndoView;
   BaseEditor *mpEditor;
   QStatusBar *mpModelStatusBar;
+  SideToolBar *mpSideToolBar;
+  QWidget *mpSideToolBarStartSpacer;
+  QWidget *mpSideToolBarEndSpacer;
   bool mDiagramViewLoaded;
   bool mCreateModelWidgetComponents;
   QVBoxLayout *mpMainLayout;
+  QHBoxLayout *mpOuterLayout;
   QList<LibraryTreeItem*> mInheritedClassesList;
   QTimer mUpdateModelTimer;
   QStringList mDependsOnModelsList;
@@ -662,6 +696,10 @@ private:
   bool dependsOnModel(const QString &modelName, bool unload);
   void updateElementModeButtons();
   void reDrawModelWidgetHelper();
+  void createSideToolBar();
+  void updateSideToolBarPlacement();
+  void updateFloatingSideToolBarGeometry();
+  bool isTextViewActive() const;
 private slots:
   void showIconView(bool checked);
   void showDiagramView(bool checked);
@@ -678,6 +716,7 @@ public slots:
   void updateModelIfDependsOn(const QString &modelName, bool unload);
 protected:
   virtual void closeEvent(QCloseEvent *event) override;
+  virtual void resizeEvent(QResizeEvent *event) override;
 };
 
 void addCloseActionsToSubWindowSystemMenu(QMdiSubWindow *pMdiSubWindow);
@@ -696,6 +735,7 @@ public:
   StringHandler::ViewType getPreviousViewType() {return mPreviousViewType;}
   void setShowGridLines(bool On) {mShowGridLines = On;}
   bool isShowGridLines() {return mShowGridLines;}
+  SideToolBar::Position getSideToolBarPosition() const {return mSideToolBarPosition;}
   bool eventFilter(QObject *object, QEvent *event);
   void changeRecentModelsListSelection(bool moveDown);
   bool validateText();
@@ -707,11 +747,13 @@ public:
 private:
   StringHandler::ViewType mPreviousViewType;
   bool mShowGridLines;
+  SideToolBar::Position mSideToolBarPosition;
   QDialog *mpModelSwitcherDialog;
   QListWidget *mpRecentModelsList;
   QMdiSubWindow *mpLastActiveSubWindow;
   void loadPreviousViewType(ModelWidget *pModelWidget);
 public slots:
+  void setSideToolBarPosition(SideToolBar::Position position);
   bool openRecentModelWidget(QListWidgetItem *pListWidgetItem);
   void currentModelWidgetChanged(QMdiSubWindow *pSubWindow);
   void saveModelWidget();

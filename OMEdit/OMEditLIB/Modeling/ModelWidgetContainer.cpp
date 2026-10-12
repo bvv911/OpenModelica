@@ -79,6 +79,75 @@ const QString cutCopyPasteConnectionsFormat("application/OMEdit.cut-copy-paste-c
 const QString cutCopyPasteShapesFormat("application/OMEdit.cut-copy-paste-shapes");
 const QString cutCopyPasteShapesOMCFormat("application/OMEdit.cut-copy-paste-shapes-omc");
 
+SideToolBar::SideToolBar(QWidget *pParent)
+  : QToolBar(pParent),
+    mpMenu(new QMenu(this)),
+    mpMoveToTopAction(mpMenu->addAction(tr("Top"))),
+    mpMoveToBottomAction(mpMenu->addAction(tr("Bottom"))),
+    mpMoveToLeftAction(mpMenu->addAction(tr("Left"))),
+    mpMoveToRightAction(mpMenu->addAction(tr("Right"))),
+    mPosition(Position::top)
+{
+  QActionGroup *pPositionActionGroup = new QActionGroup(mpMenu);
+  pPositionActionGroup->setExclusive(true);
+
+  const QList<QPair<QAction*, Position> > actions = {
+    {mpMoveToTopAction, Position::top},
+    {mpMoveToBottomAction, Position::bottom},
+    {mpMoveToLeftAction, Position::left},
+    {mpMoveToRightAction, Position::right}
+  };
+  for (const auto &action : actions) {
+    action.first->setCheckable(true);
+    pPositionActionGroup->addAction(action.first);
+    connect(action.first, &QAction::triggered, this, [this, action]() {
+      if (mPosition != action.second) {
+        setPosition(action.second);
+        emit positionChanged(mPosition);
+      }
+    });
+  }
+  setPosition(mPosition);
+}
+
+void SideToolBar::setPosition(Position position)
+{
+  mPosition = position;
+  mpMoveToTopAction->setChecked(position == Position::top);
+  mpMoveToBottomAction->setChecked(position == Position::bottom);
+  mpMoveToLeftAction->setChecked(position == Position::left);
+  mpMoveToRightAction->setChecked(position == Position::right);
+}
+
+void SideToolBar::showContextMenu(const QPoint &globalPosition)
+{
+  mpMenu->exec(globalPosition);
+}
+
+bool SideToolBar::eventFilter(QObject *pWatched, QEvent *pEvent)
+{
+  Q_UNUSED(pWatched);
+  if (pEvent->type() == QEvent::ContextMenu) {
+    showContextMenu(static_cast<QContextMenuEvent*>(pEvent)->globalPos());
+    return true;
+  }
+  return QToolBar::eventFilter(pWatched, pEvent);
+}
+
+void SideToolBar::childEvent(QChildEvent *pEvent)
+{
+  if (pEvent->added()) {
+    pEvent->child()->installEventFilter(this);
+  }
+  QToolBar::childEvent(pEvent);
+}
+
+void SideToolBar::contextMenuEvent(QContextMenuEvent *pEvent)
+{
+  showContextMenu(pEvent->globalPos());
+  pEvent->accept();
+}
+
 ModelInfo::ModelInfo()
 {
   mName = "";
@@ -5681,7 +5750,9 @@ void UndoStack::push(UndoCommand *cmd)
 
 ModelWidget::ModelWidget(LibraryTreeItem* pLibraryTreeItem, ModelWidgetContainer *pModelWidgetContainer)
   : QWidget(pModelWidgetContainer), mpModelWidgetContainer(pModelWidgetContainer), mpModelInstance(0), mpLibraryTreeItem(pLibraryTreeItem),
-    mpUndoStack(0), mpUndoView(0), mpEditor(0), mDiagramViewLoaded(false), mCreateModelWidgetComponents(false)
+    mpUndoStack(0), mpUndoView(0), mpEditor(0), mpSideToolBar(nullptr), mpSideToolBarStartSpacer(nullptr),
+    mpSideToolBarEndSpacer(nullptr), mDiagramViewLoaded(false), mCreateModelWidgetComponents(false), mpMainLayout(nullptr),
+    mpOuterLayout(nullptr)
 {
   // create widgets based on library type
   if (mpLibraryTreeItem->isModelica()) {
@@ -6010,9 +6081,6 @@ void ModelWidget::createModelWidgetComponents()
     QHBoxLayout *pElementModeButtonsHorizontalLayout = new QHBoxLayout;
     pElementModeButtonsHorizontalLayout->setContentsMargins(0, 0, 0, 0);
     pElementModeButtonsHorizontalLayout->setSpacing(0);
-    pElementModeButtonsHorizontalLayout->addWidget(mpBackToolButton);
-    pElementModeButtonsHorizontalLayout->addWidget(mpForwardToolButton);
-    pElementModeButtonsHorizontalLayout->addWidget(mpExitToolButton);
     pElementModeButtonsHorizontalLayout->addWidget(mpElementModeLabel);
     QFrame *pElementModeButtonsFrame = new QFrame;
     pElementModeButtonsFrame->setLayout(pElementModeButtonsHorizontalLayout);
@@ -6039,7 +6107,7 @@ void ModelWidget::createModelWidgetComponents()
     // create the main layout
     mpMainLayout = new QVBoxLayout;
     mpMainLayout->setContentsMargins(0, 0, 0, 0);
-    mpMainLayout->setSpacing(4);
+    mpMainLayout->setSpacing(0);
     mpMainLayout->addWidget(mpModelStatusBar);
     MainWindow *pMainWindow = MainWindow::instance();
     // show hide widgets based on library type
@@ -6048,10 +6116,6 @@ void ModelWidget::createModelWidgetComponents()
       connect(mpDiagramViewToolButton, SIGNAL(toggled(bool)), SLOT(showDiagramView(bool)));
       connect(mpTextViewToolButton, SIGNAL(toggled(bool)), SLOT(showTextView(bool)));
       connect(mpDocumentationViewToolButton, SIGNAL(clicked()), SLOT(showDocumentationView()));
-      pViewButtonsHorizontalLayout->addWidget(mpIconViewToolButton);
-      pViewButtonsHorizontalLayout->addWidget(mpDiagramViewToolButton);
-      pViewButtonsHorizontalLayout->addWidget(mpTextViewToolButton);
-      pViewButtonsHorizontalLayout->addWidget(mpDocumentationViewToolButton);
       mpModelStatusBar->addPermanentWidget(pElementModeButtonsFrame);
       mpModelicaTypeLabel->setText(StringHandler::getModelicaClassType(mpLibraryTreeItem->getRestriction()));
       mpViewTypeLabel->setText(StringHandler::getViewType(StringHandler::Diagram));
@@ -6076,7 +6140,6 @@ void ModelWidget::createModelWidgetComponents()
       mpMainLayout->addWidget(mpIconGraphicsView, 1);
       mpUndoStack->clear();
     } else if (mpLibraryTreeItem->isText()) {
-      pViewButtonsHorizontalLayout->addWidget(mpTextViewToolButton);
       QFileInfo fileInfo(mpLibraryTreeItem->getFileName());
       if (Utilities::isCFile(fileInfo.suffix())) {
         mpEditor = new CEditor(this);
@@ -6121,14 +6184,11 @@ void ModelWidget::createModelWidgetComponents()
     } else if (mpLibraryTreeItem->isSSP()) {
       if (mpLibraryTreeItem->isSystemElement() || mpLibraryTreeItem->isComponentElement()) {
         connect(mpIconViewToolButton, SIGNAL(toggled(bool)), SLOT(showIconView(bool)));
-        pViewButtonsHorizontalLayout->addWidget(mpIconViewToolButton);
       }
       connect(mpDiagramViewToolButton, SIGNAL(toggled(bool)), SLOT(showDiagramView(bool)));
-      pViewButtonsHorizontalLayout->addWidget(mpDiagramViewToolButton);
       // Only the top level OMSimualtor models or systems or components will have the editor.
       if (mpLibraryTreeItem->isTopLevel() || mpLibraryTreeItem->isSystemElement() || mpLibraryTreeItem->isComponentElement()) {
         connect(mpTextViewToolButton, SIGNAL(toggled(bool)), SLOT(showTextView(bool)));
-        pViewButtonsHorizontalLayout->addWidget(mpTextViewToolButton);
         // create an editor
         mpEditor = new OMSimulatorEditor(this);
         OMSimulatorEditor *pOMSimulatorEditor = dynamic_cast<OMSimulatorEditor*>(mpEditor);
@@ -6158,8 +6218,18 @@ void ModelWidget::createModelWidgetComponents()
       connect(mpEditor->getPlainTextEdit()->document(), SIGNAL(redoAvailable(bool)), SLOT(handleCanRedoChanged(bool)));
       mpMainLayout->addWidget(mpEditor, 1);
     }
-    setLayout(mpMainLayout);
+
+    mpModelStatusBar->hide();
+    createSideToolBar();
+
+    mpOuterLayout = new QHBoxLayout;
+    mpOuterLayout->setContentsMargins(0, 0, 0, 0);
+    mpOuterLayout->setSpacing(0);
+    mpOuterLayout->addLayout(mpMainLayout, 1);
+    setLayout(mpOuterLayout);
+
     mCreateModelWidgetComponents = true;
+    updateSideToolBarPosition(mpModelWidgetContainer->getSideToolBarPosition());
   }
 }
 
@@ -7521,6 +7591,131 @@ void ModelWidget::reDrawModelWidgetHelper()
   updateViewButtonsBasedOnAccess();
 }
 
+void ModelWidget::createSideToolBar()
+{
+  mpSideToolBar = new SideToolBar(this);
+  mpSideToolBar->setFloatable(false);
+  mpSideToolBar->setMovable(false);
+  const int toolbarIconSize = OptionsDialog::instance()->getGeneralSettingsPage()->getToolbarIconSizeSpinBox()->value();
+  mpSideToolBar->setIconSize(QSize(toolbarIconSize, toolbarIconSize));
+
+  mpSideToolBarStartSpacer = new QWidget(mpSideToolBar);
+  mpSideToolBar->addWidget(mpSideToolBarStartSpacer);
+
+  mpSideToolBar->addWidget(mpIconViewToolButton);
+  mpSideToolBar->addWidget(mpDiagramViewToolButton);
+  mpSideToolBar->addWidget(mpTextViewToolButton);
+  mpSideToolBar->addWidget(mpDocumentationViewToolButton);
+  mpSideToolBar->addSeparator();
+  mpSideToolBar->addWidget(mpBackToolButton);
+  mpSideToolBar->addWidget(mpForwardToolButton);
+  mpSideToolBar->addWidget(mpExitToolButton);
+
+  MainWindow *pMainWindow = MainWindow::instance();
+  mpSideToolBar->addSeparator();
+  mpSideToolBar->addAction(pMainWindow->getShowGridLinesAction());
+  mpSideToolBar->addAction(pMainWindow->getResetZoomAction());
+  mpSideToolBar->addAction(pMainWindow->getZoomInAction());
+  mpSideToolBar->addAction(pMainWindow->getZoomOutAction());
+  mpSideToolBar->addAction(pMainWindow->getFitToDiagramAction());
+
+  mpSideToolBarEndSpacer = new QWidget(mpSideToolBar);
+  mpSideToolBar->addWidget(mpSideToolBarEndSpacer);
+
+  mpSideToolBar->setObjectName("SideToolBar");
+  mpSideToolBar->setStyleSheet(
+    "QToolBar#SideToolBar {"
+    "  border: 1px solid palette(mid);"
+    "  background: palette(window);"
+    "  padding: 2px;"
+    "}"
+  );
+
+  connect(mpSideToolBar, &SideToolBar::positionChanged,
+          mpModelWidgetContainer, &ModelWidgetContainer::setSideToolBarPosition);
+}
+
+bool ModelWidget::isTextViewActive() const
+{
+  return mpEditor && (mpTextViewToolButton->isChecked() || (!mpDiagramGraphicsView && !mpIconGraphicsView));
+}
+
+void ModelWidget::updateSideToolBarPosition(SideToolBar::Position position)
+{
+  if (!mpSideToolBar) {
+    return;
+  }
+  mpSideToolBar->setPosition(position);
+  updateSideToolBarPlacement();
+}
+
+void ModelWidget::updateSideToolBarPlacement()
+{
+  if (!mpSideToolBar || !mpMainLayout || !mpOuterLayout) {
+    return;
+  }
+
+  mpMainLayout->removeWidget(mpSideToolBar);
+  mpOuterLayout->removeWidget(mpSideToolBar);
+
+  const SideToolBar::Position position = mpSideToolBar->getPosition();
+  const bool dockInTextView = isTextViewActive()
+                              && (position == SideToolBar::Position::top
+                                  || position == SideToolBar::Position::bottom);
+
+  if (position == SideToolBar::Position::left) {
+    mpSideToolBar->setOrientation(Qt::Vertical);
+    mpSideToolBar->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
+    mpSideToolBarStartSpacer->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
+    mpSideToolBarEndSpacer->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
+    mpOuterLayout->insertWidget(0, mpSideToolBar);
+  } else if (dockInTextView) {
+    mpSideToolBar->setOrientation(Qt::Horizontal);
+    mpSideToolBar->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    mpSideToolBarStartSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    mpSideToolBarEndSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    if (position == SideToolBar::Position::top) {
+      mpMainLayout->insertWidget(0, mpSideToolBar);
+    } else {
+      mpMainLayout->addWidget(mpSideToolBar);
+    }
+  } else {
+    mpSideToolBar->setOrientation(position == SideToolBar::Position::right ? Qt::Vertical : Qt::Horizontal);
+    mpSideToolBar->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+    mpSideToolBarStartSpacer->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
+    mpSideToolBarEndSpacer->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
+    mpSideToolBar->setParent(this);
+    updateFloatingSideToolBarGeometry();
+  }
+
+  mpSideToolBar->show();
+  mpSideToolBar->raise();
+}
+
+void ModelWidget::updateFloatingSideToolBarGeometry()
+{
+  if (!mpSideToolBar || mpMainLayout->indexOf(mpSideToolBar) >= 0
+      || mpOuterLayout->indexOf(mpSideToolBar) >= 0) {
+    return;
+  }
+
+  mpSideToolBar->adjustSize();
+  const SideToolBar::Position position = mpSideToolBar->getPosition();
+  int x = 0;
+  int y = 0;
+  if (position == SideToolBar::Position::right) {
+    x = width() - mpSideToolBar->width();
+    y = (height() - mpSideToolBar->height()) / 2;
+  } else {
+    x = (width() - mpSideToolBar->width()) / 2;
+    if (position == SideToolBar::Position::bottom) {
+      y = height() - mpSideToolBar->height();
+    }
+  }
+  mpSideToolBar->move(qMax(0, x), qMax(0, y));
+  mpSideToolBar->raise();
+}
+
 /*!
  * \brief ModelWidget::showIconView
  * \param checked
@@ -7549,6 +7744,7 @@ void ModelWidget::showIconView(bool checked)
     mpEditor->hide();
   }
   mpIconGraphicsView->show();
+  updateSideToolBarPlacement();
   mpIconGraphicsView->setFocus();
   mpModelWidgetContainer->setPreviousViewType(StringHandler::Icon);
   mpModelWidgetContainer->currentModelWidgetChanged(mpModelWidgetContainer->getCurrentMdiSubWindow());
@@ -7585,6 +7781,7 @@ void ModelWidget::showDiagramView(bool checked)
     mpEditor->hide();
   }
   mpDiagramGraphicsView->show();
+  updateSideToolBarPlacement();
   mpDiagramGraphicsView->setFocus();
   mpModelWidgetContainer->setPreviousViewType(StringHandler::Diagram);
   mpModelWidgetContainer->currentModelWidgetChanged(mpModelWidgetContainer->getCurrentMdiSubWindow());
@@ -7612,6 +7809,7 @@ void ModelWidget::showTextView(bool checked)
   mpDiagramGraphicsView->hide();
   if (mpEditor) {
     mpEditor->show();
+    updateSideToolBarPlacement();
     mpEditor->getPlainTextEdit()->setFocus(Qt::ActiveWindowFocusReason);
     mpEditor->getPlainTextEdit()->updateCursorPosition();
   }
@@ -7761,6 +7959,12 @@ void ModelWidget::closeEvent(QCloseEvent *event)
   }
 }
 
+void ModelWidget::resizeEvent(QResizeEvent *event)
+{
+  QWidget::resizeEvent(event);
+  updateFloatingSideToolBarGeometry();
+}
+
 /*!
  * \brief addCloseActionsToSubWindowSystemMenu
  * Adds the "Close All Windows" and "Close All Windows But This" actions to QMdiSubWindow system menu.
@@ -7774,8 +7978,17 @@ void addCloseActionsToSubWindowSystemMenu(QMdiSubWindow *pMdiSubWindow)
 }
 
 ModelWidgetContainer::ModelWidgetContainer(QWidget *pParent)
-  : QMdiArea(pParent), mPreviousViewType(StringHandler::NoView), mShowGridLines(true)
+  : QMdiArea(pParent), mPreviousViewType(StringHandler::NoView), mShowGridLines(true),
+    mSideToolBarPosition(SideToolBar::Position::top)
 {
+  const int savedPosition = Utilities::getApplicationSettings()
+                              ->value("modeling/sideToolBarPosition", static_cast<int>(SideToolBar::Position::top))
+                              .toInt();
+  if (savedPosition >= static_cast<int>(SideToolBar::Position::top)
+      && savedPosition <= static_cast<int>(SideToolBar::Position::right)) {
+    mSideToolBarPosition = static_cast<SideToolBar::Position>(savedPosition);
+  }
+
   setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
   setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
   setActivationOrder(QMdiArea::ActivationHistoryOrder);
@@ -7816,6 +8029,19 @@ ModelWidgetContainer::ModelWidgetContainer(QWidget *pParent)
   connect(MainWindow::instance()->getAddConnectorAction(), SIGNAL(triggered()), SLOT(addConnector()));
   connect(MainWindow::instance()->getAddBusAction(), SIGNAL(triggered()), SLOT(addBus()));
   connect(MainWindow::instance()->getAddSubModelAction(), SIGNAL(triggered()), SLOT(addSubModel()));
+}
+
+void ModelWidgetContainer::setSideToolBarPosition(SideToolBar::Position position)
+{
+  mSideToolBarPosition = position;
+  Utilities::getApplicationSettings()->setValue("modeling/sideToolBarPosition", static_cast<int>(position));
+
+  foreach (QMdiSubWindow *pSubWindow, subWindowList()) {
+    ModelWidget *pModelWidget = qobject_cast<ModelWidget*>(pSubWindow->widget());
+    if (pModelWidget && pModelWidget->isLoadedWidgetComponents()) {
+      pModelWidget->updateSideToolBarPosition(position);
+    }
+  }
 }
 
 void ModelWidgetContainer::addModelWidget(ModelWidget *pModelWidget, bool checkPreferedView)
