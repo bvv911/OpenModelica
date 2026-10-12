@@ -72,6 +72,7 @@
 #include <QPrintDialog>
 #include <QDesktopServices>
 #include <QClipboard>
+#include <QStyle>
 #include <QStringBuilder>
 
 const QString cutCopyPasteComponentsConnectionsFormat("application/OMEdit.cut-copy-paste-components-connections");
@@ -7707,7 +7708,8 @@ void ModelWidget::updateFloatingSideToolBarGeometry()
   int x = 0;
   int y = 0;
   if (position == SideToolBar::Position::right) {
-    x = width() - mpSideToolBar->width();
+    const int scrollBarWidth = style()->pixelMetric(QStyle::PM_ScrollBarExtent, nullptr, this);
+    x = width() - mpSideToolBar->width() - scrollBarWidth;
     y = (height() - mpSideToolBar->height()) / 2;
   } else {
     x = (width() - mpSideToolBar->width()) / 2;
