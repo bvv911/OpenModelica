@@ -66,6 +66,7 @@
 #include <QMenuBar>
 #include <QGraphicsDropShadowEffect>
 #include <QButtonGroup>
+#include <QActionGroup>
 #include <QDockWidget>
 #include <QPrinter>
 #include <QPrintDialog>
@@ -126,7 +127,6 @@ void SideToolBar::showContextMenu(const QPoint &globalPosition)
 
 bool SideToolBar::eventFilter(QObject *pWatched, QEvent *pEvent)
 {
-  Q_UNUSED(pWatched);
   if (pEvent->type() == QEvent::ContextMenu) {
     showContextMenu(static_cast<QContextMenuEvent*>(pEvent)->globalPos());
     return true;
@@ -137,7 +137,10 @@ bool SideToolBar::eventFilter(QObject *pWatched, QEvent *pEvent)
 void SideToolBar::childEvent(QChildEvent *pEvent)
 {
   if (pEvent->added()) {
-    pEvent->child()->installEventFilter(this);
+    QWidget *pChildWidget = qobject_cast<QWidget*>(pEvent->child());
+    if (pChildWidget && !qobject_cast<QMenu*>(pChildWidget)) {
+      pChildWidget->installEventFilter(this);
+    }
   }
   QToolBar::childEvent(pEvent);
 }

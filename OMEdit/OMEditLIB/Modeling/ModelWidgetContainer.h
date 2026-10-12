@@ -71,6 +71,7 @@
 
 class ModelWidget;
 class ElementInfo;
+class QMenu;
 class LineAnnotation;
 class PolygonAnnotation;
 class RectangleAnnotation;
