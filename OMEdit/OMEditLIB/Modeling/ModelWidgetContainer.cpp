@@ -6049,6 +6049,11 @@ void ModelWidget::createModelWidgetComponents()
     mpViewsButtonGroup->addButton(mpIconViewToolButton);
     mpViewsButtonGroup->addButton(mpTextViewToolButton);
     mpViewsButtonGroup->addButton(mpDocumentationViewToolButton);
+    if (mpLibraryTreeItem->isText()) {
+      mpTextViewToolButton->setChecked(true);
+    } else {
+      mpDiagramViewToolButton->setChecked(true);
+    }
     // frame to contain view buttons
     QFrame *pViewButtonsFrame = new QFrame;
     QHBoxLayout *pViewButtonsHorizontalLayout = new QHBoxLayout;
